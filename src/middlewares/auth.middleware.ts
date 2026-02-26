@@ -4,15 +4,7 @@ import { prisma } from "../lib/prisma";
 
 const JWT_SECRET = process.env.JWT_SECRET || "secret123";
 
-export interface AuthRequest extends Request {
-  user?: {
-    userId: string;
-    role: string;
-    email: string;
-  };
-}
-
-export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction) => {
+export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
