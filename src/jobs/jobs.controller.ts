@@ -1,8 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
-import { AuthRequest } from "../middlewares/auth.middleware";
 
-export async function createJob(req: AuthRequest, res: Response) {
+export async function createJob(req: Request, res: Response) {
   try {
     const { title, location } = req.body;
 

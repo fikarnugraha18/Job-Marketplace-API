@@ -1,8 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
-import { AuthRequest } from "../middlewares/auth.middleware";
 
-export async function applyJob(req: AuthRequest, res: Response) {
+export async function applyJob(req: Request, res: Response) {
   try {
     const { jobId } = req.body;
     const userId = req.user!.userId;
@@ -40,7 +39,7 @@ export async function getUserApplications(req: AuthRequest, res: Response) {
     const userId = req.user!.userId;
 
     const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 5;
+    const limit = Number(req.query.limit) || 10;
 
     const applications = await prisma.application.findMany({
       where: { userId },
@@ -75,7 +74,7 @@ export async function getJobApplications(req: AuthRequest, res: Response) {
     const jobId = req.params.jobId;
 
     const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 5;
+    const limit = Number(req.query.limit) || 10;
     const status = req.query.status as string | undefined;
 
     const job = await prisma.job.findUnique({

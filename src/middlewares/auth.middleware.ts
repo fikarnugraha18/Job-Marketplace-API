@@ -4,9 +4,14 @@ import { prisma } from "../lib/prisma";
 
 const JWT_SECRET = process.env.JWT_SECRET || "secret123";
 
-export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
+export const authenticate = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const authHeader = req.headers.authorization;
+
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({ message: "Missing or invalid token" });
     }
@@ -14,7 +19,10 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     const token = authHeader.split(" ")[1];
     const payload: any = jwt.verify(token, JWT_SECRET);
 
-    const user = await prisma.user.findUnique({ where: { id: payload.userId } });
+    const user = await prisma.user.findUnique({
+      where: { id: String(payload.userId) },
+    });
+
     if (!user) {
       return res.status(401).json({ message: "User not found" });
     }
@@ -32,9 +40,15 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
   }
 };
 
-export const authorizeCompany = (req: AuthRequest, res: Response, next: NextFunction) => {
+export const authorizeCompany = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   if (req.user?.role !== "COMPANY") {
-    return res.status(403).json({ message: "Only COMPANY role can perform this action" });
+    return res
+      .status(403)
+      .json({ message: "Only COMPANY role can perform this action" });
   }
   next();
 };

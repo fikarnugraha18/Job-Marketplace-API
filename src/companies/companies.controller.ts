@@ -3,7 +3,7 @@ import { prisma } from "../lib/prisma";
 
 export const createCompany = async (req: Request, res: Response) => {
   try {
-    const user = req.user;
+    const userId = req.user!.userId;
 
     if (user.role !== "COMPANY") {
       return res.status(403).json({ message: "Only company can create company profile" });
