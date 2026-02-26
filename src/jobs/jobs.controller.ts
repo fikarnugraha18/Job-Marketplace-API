@@ -58,7 +58,7 @@ export async function getJobs(req: Request, res: Response) {
 
 export async function getJob(req: Request, res: Response) {
   try {
-    const id = req.params.id;
+    const id = req.params.id as string;
 
     const job = await prisma.job.findUnique({
       where: { id },
@@ -75,9 +75,9 @@ export async function getJob(req: Request, res: Response) {
 }
 
 
-export async function updateJob(req: AuthRequest, res: Response) {
+export async function updateJob(req: Request, res: Response) {
   try {
-    const id = req.params.id;
+    const id = req.params.id as string;
     const { title, location } = req.body;
     const userId = req.user!.userId;
 
@@ -103,9 +103,9 @@ export async function updateJob(req: AuthRequest, res: Response) {
 }
 
 
-export async function deleteJob(req: AuthRequest, res: Response) {
+export async function deleteJob(req: Request, res: Response) {
   try {
-    const id = req.params.id;
+    const id = req.params.id as string;
     const userId = req.user!.userId;
 
     const job = await prisma.job.findUnique({ where: { id } });

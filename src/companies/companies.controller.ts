@@ -3,10 +3,12 @@ import { prisma } from "../lib/prisma";
 
 export const createCompany = async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.userId;
+    const user = req.user!; // ✅ deklarasikan dulu
 
     if (user.role !== "COMPANY") {
-      return res.status(403).json({ message: "Only company can create company profile" });
+      return res
+        .status(403)
+        .json({ message: "Only company can create company profile" });
     }
 
     const company = await prisma.company.create({
@@ -18,6 +20,7 @@ export const createCompany = async (req: Request, res: Response) => {
 
     res.status(201).json(company);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

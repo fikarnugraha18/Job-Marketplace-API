@@ -6,22 +6,35 @@ export async function applyJob(req: Request, res: Response) {
     const { jobId } = req.body;
     const userId = req.user!.userId;
 
-    if (!jobId) return res.status(400).json({ message: "jobId wajib diisi" });
+    if (!jobId) {
+      return res.status(400).json({ message: "jobId wajib diisi" });
+    }
 
-    
-    const job = await prisma.job.findUnique({ where: { id: jobId } });
-    if (!job) return res.status(404).json({ message: "Job not found" });
-
-  
-    const existing = await prisma.application.findUnique({
-      where: { userId_jobId: { userId, jobId } },
+    const job = await prisma.job.findUnique({
+      where: { id: jobId as string },
     });
-    if (existing) return res.status(400).json({ message: "You already applied to this job" });
+
+    if (!job) {
+      return res.status(404).json({ message: "Job not found" });
+    }
+
+    const existing = await prisma.application.findUnique({
+      where: {
+        userId_jobId: {
+          userId,
+          jobId: jobId as string,
+        },
+      },
+    });
+
+    if (existing) {
+      return res.status(400).json({ message: "You already applied to this job" });
+    }
 
     const application = await prisma.application.create({
       data: {
         userId,
-        jobId,
+        jobId: jobId as string,
         status: "APPLIED",
       },
     });
@@ -33,8 +46,7 @@ export async function applyJob(req: Request, res: Response) {
   }
 }
 
-
-export async function getUserApplications(req: AuthRequest, res: Response) {
+export async function getUserApplications(req: Request, res: Response) {
   try {
     const userId = req.user!.userId;
 
@@ -43,7 +55,13 @@ export async function getUserApplications(req: AuthRequest, res: Response) {
 
     const applications = await prisma.application.findMany({
       where: { userId },
-      include: { job: { include: { company: true } } },
+      include: {
+        job: {
+          include: {
+            company: true,
+          },
+        },
+      },
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * limit,
       take: limit,
@@ -60,18 +78,16 @@ export async function getUserApplications(req: AuthRequest, res: Response) {
       totalPages: Math.ceil(total / limit),
       data: applications,
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed get applications" });
   }
 }
 
-
-export async function getJobApplications(req: AuthRequest, res: Response) {
+export async function getJobApplications(req: Request, res: Response) {
   try {
     const userId = req.user!.userId;
-    const jobId = req.params.jobId;
+    const jobId = req.params.jobId as string;
 
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
@@ -82,13 +98,18 @@ export async function getJobApplications(req: AuthRequest, res: Response) {
       include: { company: true },
     });
 
-    if (!job) return res.status(404).json({ message: "Job not found" });
+    if (!job) {
+      return res.status(404).json({ message: "Job not found" });
+    }
 
     if (job.company.ownerId !== userId) {
-      return res.status(403).json({ message: "Cannot see applications of other company" });
+      return res
+        .status(403)
+        .json({ message: "Cannot see applications of other company" });
     }
 
     const whereCondition: any = { jobId };
+
     if (status) {
       whereCondition.status = status;
     }
@@ -96,14 +117,14 @@ export async function getJobApplications(req: AuthRequest, res: Response) {
     const applications = await prisma.application.findMany({
       where: whereCondition,
       include: {
-         user: {
-            select: {
-                id: true,
-                email: true,
-                role: true,
-                createdAt: true,                    
-            },
-         },
+        user: {
+          select: {
+            id: true,
+            email: true,
+            role: true,
+            createdAt: true,
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * limit,
@@ -121,17 +142,15 @@ export async function getJobApplications(req: AuthRequest, res: Response) {
       totalPages: Math.ceil(total / limit),
       data: applications,
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed get job applications" });
   }
 }
 
-export async function updateApplicationStatus(req: AuthRequest, res: Response) {
+export async function updateApplicationStatus(req: Request, res: Response) {
   try {
-
-    const { applicationId } = req.params;
+    const applicationId = req.params.applicationId as string;
     const { status } = req.body;
     const userId = req.user!.userId;
 
@@ -139,15 +158,30 @@ export async function updateApplicationStatus(req: AuthRequest, res: Response) {
       return res.status(400).json({ message: "Invalid status" });
     }
 
-    const application = await prisma.application.findUnique({ where: { id: applicationId } });
-    if (!application) return res.status(404).json({ message: "Application not found" });
+    const application = await prisma.application.findUnique({
+      where: { id: applicationId },
+    });
 
-  
-    const job = await prisma.job.findUnique({ where: { id: application.jobId } });
-    const company = await prisma.company.findUnique({ where: { id: job!.companyId } });
+    if (!application) {
+      return res.status(404).json({ message: "Application not found" });
+    }
 
-    if (company?.ownerId !== userId) {
-      return res.status(403).json({ message: "Cannot update applications of other company" });
+    const job = await prisma.job.findUnique({
+      where: { id: application.jobId },
+    });
+
+    if (!job) {
+      return res.status(404).json({ message: "Job not found" });
+    }
+
+    const company = await prisma.company.findUnique({
+      where: { id: job.companyId },
+    });
+
+    if (!company || company.ownerId !== userId) {
+      return res
+        .status(403)
+        .json({ message: "Cannot update applications of other company" });
     }
 
     const updated = await prisma.application.update({
@@ -162,20 +196,28 @@ export async function updateApplicationStatus(req: AuthRequest, res: Response) {
   }
 }
 
-
-export async function deleteApplication(req: AuthRequest, res: Response) {
+export async function deleteApplication(req: Request, res: Response) {
   try {
-    const applicationId = req.params.applicationId;
+    const applicationId = req.params.applicationId as string;
     const userId = req.user!.userId;
 
-    const application = await prisma.application.findUnique({ where: { id: applicationId } });
-    if (!application) return res.status(404).json({ message: "Application not found" });
+    const application = await prisma.application.findUnique({
+      where: { id: applicationId },
+    });
 
-    if (application.userId !== userId) {
-      return res.status(403).json({ message: "Cannot delete other user's application" });
+    if (!application) {
+      return res.status(404).json({ message: "Application not found" });
     }
 
-    await prisma.application.delete({ where: { id: applicationId } });
+    if (application.userId !== userId) {
+      return res
+        .status(403)
+        .json({ message: "Cannot delete other user's application" });
+    }
+
+    await prisma.application.delete({
+      where: { id: applicationId },
+    });
 
     res.json({ message: "Application cancelled" });
   } catch (error) {
